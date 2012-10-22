@@ -41,7 +41,7 @@
 	 union_gen/1, weighted_union_gen/1, tuple_gen/1, loose_tuple_gen/2,
 	 loose_tuple_rev/2, exactly_gen/1, fixed_list_gen/1, function_gen/2,
 	 any_gen/1, native_type_gen/2, safe_weighted_union_gen/1,
-	 safe_union_gen/1]).
+	 safe_union_gen/1, utf8_gen/1]).
 
 -export_type([instance/0, imm_instance/0, sized_generator/0, nosize_generator/0,
 	      generator/0, reverse_gen/0, combine_fun/0, alt_gens/0]).
@@ -459,6 +459,22 @@ vector_gen_tr(0, _ElemType, AccList) ->
     AccList;
 vector_gen_tr(Left, ElemType, AccList) ->
     vector_gen_tr(Left - 1, ElemType, [generate(ElemType) | AccList]).
+
+-spec utf8_gen(size()) -> proper_types:type().
+utf8_gen(Size) ->
+    ?LET(Bytes,
+        utf8_gen_tr(Size, []),
+        iolist_to_binary(Bytes)
+    ).
+
+-spec utf8_gen_tr(size(), list(binary())) -> list(binary()).
+utf8_gen_tr(0, AccList) ->
+    lists:reverse(AccList);
+
+utf8_gen_tr(Left, AccList) ->
+    Char = {_, {_, Size}, _} =
+    generate(proper_types:utf8_codepoint(lists:min([4, Left]))),
+    utf8_gen_tr(Left - Size, [Char|AccList]).
 
 %% @private
 -spec union_gen([proper_types:type(),...]) -> imm_instance().

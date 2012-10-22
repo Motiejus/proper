@@ -137,6 +137,8 @@
 -module(proper_types).
 -export([is_inst/2, is_inst/3]).
 
+-export([utf8/0]).
+-export([utf8_codepoint/1]).
 -export([integer/2, float/2, atom/0, binary/0, binary/1, bitstring/0,
 	 bitstring/1, list/1, vector/2, union/1, weighted_union/1,tuple/1,
 	 loose_tuple/1, exactly/1, fixed_list/1, function/2, any/0,
@@ -609,6 +611,44 @@ number_shrinker(X, Type, S) ->
     {Low, High} = get_prop(env, Type),
     proper_shrink:number_shrinker(X, Low, High, S).
 
+%% @private
+-spec gen_codepoint(1|2|3|4, [] | [{proper_types:type(), 2|3|4}, ...]) ->
+    proper_types:type().
+gen_codepoint(4, Acc) ->
+    gen_codepoint(3, [{integer(16#10000, 16#10FFFF), 4}|Acc]);
+
+gen_codepoint(3, Acc) ->
+    V1 = integer(16#800, 16#D7FF),
+    V2 = integer(16#E000, 16#FFFD),
+    gen_codepoint(2, [{union([V1, V2]), 3}|Acc]);
+
+gen_codepoint(2, Acc) ->
+    gen_codepoint(1, [{integer(16#80, 16#7FF), 2}|Acc]);
+
+gen_codepoint(1, Acc) ->
+    union([{integer(0, 16#7F), 1}|Acc]).
+
+%% @doc Valid sub-UTF-8 code point binary (1-4 byte length)
+-spec utf8_codepoint(pos_integer()) -> proper_types:type().
+utf8_codepoint(MaxLen) ->
+    ?LET(
+        {Codepoint, Octets},
+        gen_codepoint(MaxLen, []),
+        case Octets of
+            1 ->
+                <<Codepoint:8>>;
+            2 ->
+                <<A:5, B:6>> = <<Codepoint:11>>,
+                <<2#110:3, A:5, 2#10:2, B:6>>;
+            3 ->
+                <<A:4, B:6, C:6>> = <<Codepoint:16>>,
+                <<2#1110:4, A:4, 2#10:2, B:6, 2#10:2, C:6>>;
+            4 ->
+                <<A:3, B:6, C:6, D:6>> = <<Codepoint:21>>,
+                <<2#11110:5, A:3, 2#10:2, B:6, 2#10:2, C:6, 2#10:2, D:6>>
+        end
+    ).
+
 %% @doc All floats between `Low' and `High', bounds included.
 %% `Low' and `High' must be Erlang expressions that evaluate to floats, with
 %% `Low =< High'. Additionally, `Low' and `High' may have the value `inf', in
@@ -687,6 +727,23 @@ binary_len_gen(Type) ->
 binary_len_is_instance(Type, X) ->
     Len = get_prop(env, Type),
     is_binary(X) andalso byte_size(X) =:= Len.
+
+%% @doc All utf8 strings with size of `Len'. Instances shrink towards <<>>.
+%-spec utf8(length()) -> proper_types:type().
+%utf8(Length) ->
+%    proper_gen:utf8_gen_len(Length).
+
+%% @doc All utf8 strings. Instances shrink towards <<>>.
+-spec utf8() -> proper_types:type().
+utf8() ->
+    ?WRAPPER([
+            {generator, fun proper_gen:utf8_gen/1},
+            {is_instance, fun utf8_is_instance/1}
+        ]).
+
+utf8_is_instance(B) ->
+    (catch unicode:characters_to_binary(B)) == B.
+
 
 %% @doc All bitstrings. Instances shrink towards the empty bitstring, `<<>>'.
 -spec bitstring() -> proper_types:type().
