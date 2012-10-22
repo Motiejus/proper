@@ -736,14 +736,63 @@ binary_len_is_instance(Type, X) ->
 %% @doc All utf8 strings. Instances shrink towards <<>>.
 -spec utf8() -> proper_types:type().
 utf8() ->
-    ?WRAPPER([
+    ElemType = cook_outer(utf8_codepoint(4)),
+    ?CONTAINER([
             {generator, fun proper_gen:utf8_gen/1},
-            {is_instance, fun utf8_is_instance/1}
+            {is_instance, fun utf8_is_instance/1},
+            {internal_type, ElemType},
+            {get_length, fun utf8_length/1},
+            {split, fun utf8_split/2},
+            {join, fun binary_join/2},
+            {get_indices, fun utf8_get_indices/2},
+            {remove, fun utf8_remove/2},
+            {retrieve, fun utf8_retrieve/2},
+            {update, fun utf8_update/3}
         ]).
 
-utf8_is_instance(B) ->
-    (catch unicode:characters_to_binary(B)) == B.
+utf8_is_instance(Bin) ->
+    (catch unicode:characters_to_binary(Bin)) == Bin.
 
+utf8_length(Inst) ->
+    Bin = proper_gen:clean_instance(Inst),
+    size(unicode:characters_to_binary(Bin, utf8, utf32)) div 4.
+
+%% @doc Split utf8 codepoint by codepoint
+%%
+%% For example, <<127, 16#C5, 16#BD>> -> [<<127>>, <<16#C5, 16#BD>>].
+-spec utf8_split_to_list(binary()) -> list(binary()).
+utf8_split_to_list(Inst) ->
+    Bin = proper_gen:clean_instance(Inst),
+    Utf32 = unicode:characters_to_binary(Bin, utf8, utf32),
+    Size = size(Utf32) div 4,
+
+    [unicode:characters_to_binary(binary:part(Utf32, S*4, 4), utf32, utf8) ||
+        S <- lists:seq(0, Size-1)].
+
+utf8_split(N, Inst) ->
+    L = utf8_split_to_list(Inst),
+    {L1, L2} = lists:split(N, L),
+    {iolist_to_binary(L1), iolist_to_binary(L2)}.
+
+binary_join(B1, B2) ->
+    <<B1/binary, B2/binary>>.
+
+-spec utf8_get_indices(proper_gen:generator(), binary()) -> [position()].
+utf8_get_indices(_, Inst) ->
+    lists:seq(1, utf8_length(Inst)).
+
+-spec utf8_remove(position(), binary()) -> binary().
+utf8_remove(Index, Inst) ->
+    L = utf8_split_to_list(Inst),
+    iolist_to_binary(proper_arith:list_remove(Index, L)).
+
+utf8_retrieve(N, Inst) ->
+    L = utf8_split_to_list(Inst),
+    lists:nth(N, L).
+
+utf8_update(Index, NewElem, Inst) ->
+    L = utf8_split_to_list(Inst),
+    iolist_to_binary(proper_arith:list_update(Index, NewElem, L)).
 
 %% @doc All bitstrings. Instances shrink towards the empty bitstring, `<<>>'.
 -spec bitstring() -> proper_types:type().

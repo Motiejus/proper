@@ -467,12 +467,11 @@ utf8_gen(Size) ->
         iolist_to_binary(Bytes)
     ).
 
--spec utf8_gen_tr(size(), list(binary())) -> list(binary()).
 utf8_gen_tr(0, AccList) ->
     lists:reverse(AccList);
 
 utf8_gen_tr(Left, AccList) ->
-    Char = {_, {_, Size}, _} =
+    {'$used', {_, Size}, Char} =
     generate(proper_types:utf8_codepoint(lists:min([4, Left]))),
     utf8_gen_tr(Left - Size, [Char|AccList]).
 
