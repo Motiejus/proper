@@ -137,7 +137,7 @@
 -module(proper_types).
 -export([is_inst/2, is_inst/3]).
 
--export([utf8/0]).
+-export([utf8/0, utf8/1]).
 -export([utf8_codepoint/1]).
 -export([integer/2, float/2, atom/0, binary/0, binary/1, bitstring/0,
 	 bitstring/1, list/1, vector/2, union/1, weighted_union/1,tuple/1,
@@ -728,10 +728,29 @@ binary_len_is_instance(Type, X) ->
     Len = get_prop(env, Type),
     is_binary(X) andalso byte_size(X) =:= Len.
 
-%% @doc All utf8 strings with size of `Len'. Instances shrink towards <<>>.
-%-spec utf8(length()) -> proper_types:type().
-%utf8(Length) ->
-%    proper_gen:utf8_gen_len(Length).
+%% @doc All utf8 strings with size of `Len'. Instances shrink towards
+%% binary of the given length.
+-spec utf8(length()) -> proper_types:type().
+utf8(Len) ->
+    ElemType = cook_outer(utf8_codepoint(4)),
+    ?CONTAINER([
+            {env, Len},
+            {generator, {typed, fun utf8_len_gen/1}},
+            {is_instance, {typed, fun utf8_len_is_instance/2}},
+            {internal_type, ElemType},
+            {get_indices, fun utf8_get_indices/2},
+            {retrieve, fun utf8_retrieve/2},
+            {update, fun utf8_update/3}
+        ]).
+
+utf8_len_gen(Type) ->
+    Len = get_prop(env, Type),
+    proper_gen:utf8_gen(Len).
+
+utf8_len_is_instance(Type, Bin) ->
+    Len = get_prop(env, Type),
+    size(Bin) == Len andalso
+    utf8_is_instance(Bin).
 
 %% @doc All utf8 strings. Instances shrink towards <<>>.
 -spec utf8() -> proper_types:type().

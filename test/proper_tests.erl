@@ -329,6 +329,9 @@ simple_types_with_data() ->
      {utf8(), [<<>>,<<127>>, <<16#C5, 16#BD>>], <<>>,
         [<<1,2:3>>,<<128>>,<<255, 255>>], "utf8()"},
 
+     {utf8(1), [<<0>>, <<69>>, <<127>>], <<0>>,
+        [<<1,2:3>>,<<128>>,<<16#C5, 16#BD>>], none},
+
      {binary(), [<<>>,<<12,21>>], <<>>, [<<1,2:3>>,binary_atom,42], "binary()"},
      {binary(3), [<<41,42,43>>], <<0,0,0>>, [<<1,2,3,4>>], "<<_:3>>"},
      {binary(0), [<<>>], <<>>, [<<1>>], none},
@@ -485,7 +488,11 @@ impossible_types() ->
      ?SUCHTHAT(X, float(0.0,10.0), X < 0.0),
      ?SUCHTHAT(L, vector(12,integer()), length(L) =/= 12),
      ?SUCHTHAT(B, binary(), lists:member(256,binary_to_list(B))),
-     ?SUCHTHAT(X, exactly('Lelouch'), X =:= 'vi Brittania')].
+     ?SUCHTHAT(X, exactly('Lelouch'), X =:= 'vi Brittania'),
+     ?SUCHTHAT(U, utf8(12), size(U) =/= 12),
+     ?SUCHTHAT({S, U},
+        ?LET(S, ?LET(I, non_neg_integer(), I), {S, utf8(S)}),
+        size(U) =/= S)].
 
 impossible_native_types() ->
     [{types_test1, ["1.1","no_such_module:type1()","no_such_type()"]},
