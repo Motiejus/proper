@@ -772,7 +772,10 @@ native_type_props_test_() ->
 		      is_float(X))),
      ?_shrinksTo(0, ?LETSHRINK([X],[my_native_type()],{'tag',X})),
      ?_passes(weird_types:prop_export_all_works()),
-     ?_passes(weird_types:prop_no_auto_import_works())].
+     ?_passes(weird_types:prop_no_auto_import_works()),
+
+     ?_passes(?FORALL(B, utf8(), unicode:characters_to_binary(B) == B))
+ ].
 
 -record(untyped, {a, b = 12}).
 -type untyped() :: #untyped{}.
