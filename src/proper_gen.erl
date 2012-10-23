@@ -467,6 +467,7 @@ utf8_gen(Size) ->
         iolist_to_binary(Bytes)
     ).
 
+-spec utf8_rev(binary()) -> imm_instance().
 utf8_rev(Binary) ->
     {'$used', proper_types:utf8_split_to_list(Binary), Binary}.
 
@@ -474,7 +475,7 @@ utf8_gen_tr(0, AccList) ->
     lists:reverse(AccList);
 
 utf8_gen_tr(Left, AccList) ->
-    {'$used', {_, Size}, Char} =
+    Char = {'$used', {_, Size}, _} =
     generate(proper_types:utf8_codepoint(lists:min([4, Left]))),
     utf8_gen_tr(Left - Size, [Char|AccList]).
 
