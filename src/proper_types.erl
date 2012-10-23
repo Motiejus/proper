@@ -628,9 +628,8 @@ gen_codepoint(2, Acc) ->
 gen_codepoint(1, Acc) ->
     union([{integer(0, 16#7F), 1}|Acc]).
 
-%% @doc Valid sub-UTF-8 code point binary (1-4 byte length)
--spec utf8_codepoint(pos_integer()) -> proper_types:type().
-utf8_codepoint(MaxLen) ->
+utf8_codepoint_gen(Type) ->
+    MaxLen = get_prop(env, Type),
     ?LET(
         {Codepoint, Octets},
         gen_codepoint(MaxLen, []),
@@ -648,6 +647,21 @@ utf8_codepoint(MaxLen) ->
                 <<2#11110:5, A:3, 2#10:2, B:6, 2#10:2, C:6, 2#10:2, D:6>>
         end
     ).
+
+%% @doc Valid sub-UTF-8 code point binary (1-4 byte length)
+-spec utf8_codepoint(pos_integer()) -> proper_types:type().
+utf8_codepoint(MaxLen) ->
+    ?WRAPPER([
+            {env, MaxLen},
+            {generator, {typed, fun utf8_codepoint_gen/1}},
+            {is_instance, {typed, fun utf8_codepoint_is_instance/2}}
+        ]).
+
+utf8_codepoint_is_instance(Type, Bin) ->
+    Len = get_prop(env, Type),
+    size(Bin) >= 1 andalso
+    size(Bin) =< Len andalso
+    utf8_is_instance(Bin).
 
 %% @doc All floats between `Low' and `High', bounds included.
 %% `Low' and `High' must be Erlang expressions that evaluate to floats, with

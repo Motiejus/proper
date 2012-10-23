@@ -326,11 +326,25 @@ simple_types_with_data() ->
      {non_neg_float(), [88.8,98.9,0.0], 0.0, [-12,1,-0.01], none},
      {atom(), [elvis,'Another Atom',''], '', ["not_an_atom",12,12.2], "atom()"},
 
-     {utf8(), [<<>>,<<127>>, <<16#C5, 16#BD>>], <<>>,
-        [<<1,2:3>>,<<128>>,<<255, 255>>], "utf8()"},
+     {utf8_codepoint(1), [<<0>>, <<9>>, <<127>>], <<0>>,
+        [<<>>, <<128>>, <<16#C5BD:16>>], none},
 
-     {utf8(1), [<<0>>, <<69>>, <<127>>], <<0>>,
-        [<<1,2:3>>,<<128>>,<<16#C5, 16#BD>>], none},
+     {utf8_codepoint(2), [<<9>>, <<16#C5BD:16>>], <<0>>,
+        [<<>>, <<16#E080:16>>, <<16#ED8080:24>>], none},
+
+     {utf8_codepoint(3), [<<9>>, <<9, 16#C5BD:16>>, <<16#ED8080:24>>], <<0>>,
+        [<<>>, <<128>>, <<16#F080:16>>, <<16#E08080:24>>, <<16#F4808080:32>>],
+        none},
+
+     {utf8_codepoint(4), [<<9>>, <<9, 16#C5BD:16>>, <<16#ED8080:24>>,
+            <<16#F4808080:32>>], <<0>>, [<<>>, <<128>>, <<16#F080:16>>,
+            <<16#E08080:24>>, <<16#F0808080:32>>], none},
+
+     %{utf8(), [<<>>,<<127>>, <<16#C5, 16#BD>>], <<>>,
+     %   [<<1,2:3>>,<<128>>,<<255, 255>>], "utf8()"},
+
+     %{utf8(1), [<<0>>, <<69>>, <<127>>], <<0>>,
+     %   [<<1,2:3>>,<<128>>,<<16#C5, 16#BD>>], none},
 
      {binary(), [<<>>,<<12,21>>], <<>>, [<<1,2:3>>,binary_atom,42], "binary()"},
      {binary(3), [<<41,42,43>>], <<0,0,0>>, [<<1,2,3,4>>], "<<_:3>>"},
@@ -489,6 +503,10 @@ impossible_types() ->
      ?SUCHTHAT(L, vector(12,integer()), length(L) =/= 12),
      ?SUCHTHAT(B, binary(), lists:member(256,binary_to_list(B))),
      ?SUCHTHAT(X, exactly('Lelouch'), X =:= 'vi Brittania'),
+     ?SUCHTHAT(C, utf8_codepoint(1), size(C) =/= 1),
+     ?SUCHTHAT(C, utf8_codepoint(2), size(C) > 2),
+     ?SUCHTHAT(C, utf8_codepoint(3), size(C) > 3),
+     ?SUCHTHAT(C, utf8_codepoint(4), size(C) > 4),
      ?SUCHTHAT(U, utf8(12), size(U) =/= 12),
      ?SUCHTHAT({S, U},
         ?LET(S, ?LET(I, non_neg_integer(), I), {S, utf8(S)}),
