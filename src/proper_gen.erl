@@ -41,7 +41,7 @@
 	 union_gen/1, weighted_union_gen/1, tuple_gen/1, loose_tuple_gen/2,
 	 loose_tuple_rev/2, exactly_gen/1, fixed_list_gen/1, function_gen/2,
 	 any_gen/1, native_type_gen/2, safe_weighted_union_gen/1,
-	 safe_union_gen/1, utf8_gen/1]).
+	 safe_union_gen/1, utf8_gen/1, utf8_rev/1]).
 
 -export_type([instance/0, imm_instance/0, sized_generator/0, nosize_generator/0,
 	      generator/0, reverse_gen/0, combine_fun/0, alt_gens/0]).
@@ -466,6 +466,9 @@ utf8_gen(Size) ->
         utf8_gen_tr(Size, []),
         iolist_to_binary(Bytes)
     ).
+
+utf8_rev(Binary) ->
+    {'$used', proper_types:utf8_split_to_list(Binary), Binary}.
 
 utf8_gen_tr(0, AccList) ->
     lists:reverse(AccList);

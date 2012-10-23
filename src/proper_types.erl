@@ -142,7 +142,8 @@
 -export([integer/2, float/2, atom/0, binary/0, binary/1, bitstring/0,
 	 bitstring/1, list/1, vector/2, union/1, weighted_union/1,tuple/1,
 	 loose_tuple/1, exactly/1, fixed_list/1, function/2, any/0,
-	 shrink_list/1, safe_union/1, safe_weighted_union/1]).
+	 shrink_list/1, safe_union/1, safe_weighted_union/1,
+	 utf8_split_to_list/1]).
 -export([integer/0, non_neg_integer/0, pos_integer/0, neg_integer/0, range/2,
 	 float/0, non_neg_float/0, number/0, boolean/0, byte/0, char/0,
 	 list/0, tuple/0, string/0, wunion/1, term/0, timeout/0, arity/0]).
@@ -746,12 +747,12 @@ binary_len_is_instance(Type, X) ->
 %% binary of the given length.
 -spec utf8(length()) -> proper_types:type().
 utf8(Len) ->
-    ElemType = cook_outer(utf8_codepoint(4)),
     ?CONTAINER([
             {env, Len},
             {generator, {typed, fun utf8_len_gen/1}},
+            {reverse_gen, fun proper_gen:utf8_rev/1},
             {is_instance, {typed, fun utf8_len_is_instance/2}},
-            {internal_type, ElemType},
+            {internal_type, cook_outer(utf8_codepoint(4))},
             {get_indices, fun utf8_get_indices/2},
             {retrieve, fun utf8_retrieve/2},
             {update, fun utf8_update/3}
@@ -763,17 +764,16 @@ utf8_len_gen(Type) ->
 
 utf8_len_is_instance(Type, Bin) ->
     Len = get_prop(env, Type),
-    size(Bin) == Len andalso
-    utf8_is_instance(Bin).
+    size(Bin) == Len andalso utf8_is_instance(Bin).
 
 %% @doc All utf8 strings. Instances shrink towards <<>>.
 -spec utf8() -> proper_types:type().
 utf8() ->
-    ElemType = cook_outer(utf8_codepoint(4)),
     ?CONTAINER([
             {generator, fun proper_gen:utf8_gen/1},
+            {reverse_gen, fun proper_gen:utf8_rev/1},
             {is_instance, fun utf8_is_instance/1},
-            {internal_type, ElemType},
+            {internal_type, cook_outer(utf8_codepoint(4))},
             {get_length, fun utf8_length/1},
             {split, fun utf8_split/2},
             {join, fun binary_join/2},
